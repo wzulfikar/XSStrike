@@ -1,11 +1,33 @@
 import json
 import re
+import os
+import sys
 
 from core.requester import requester
 
+class WafSignaturesFile:
+    file = ''
+    @staticmethod
+    def get():
+        if len(WafSignaturesFile.file) > 0:
+            return WafSignaturesFile.file
+
+        if "WAF_SIGNATURES_FILE" in os.environ and len(os.environ['WAF_SIGNATURES_FILE'].strip()) > 0:
+            WafSignaturesFile.file = os.environ['WAF_SIGNATURES_FILE']
+        else:
+            # use default waf signatures file
+            WafSignaturesFile.file = './db/wafSignatures.json'
+
+        if not os.path.isfile(WafSignaturesFile.file):
+            print("Error: couldn't find waf signatures file at '"+ WafSignaturesFile.file + "'.")
+            print("verify that the file exists or provide your own waf signatures file")
+            print("by specifying `WAF_SIGNATURES_FILE` environment variable.")
+            sys.exit()
+
+        return WafSignaturesFile.file
 
 def wafDetector(url, params, headers, GET, delay, timeout):
-    with open('./db/wafSignatures.json', 'r') as file:
+    with open(WafSignaturesFile.get(), 'r') as file:
         wafSignatures = json.load(file)
     # a payload which is noisy enough to provoke the WAF
     noise = '<script>alert("XSS")</script>'
